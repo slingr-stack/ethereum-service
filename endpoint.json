@@ -1,0 +1,302 @@
+{
+  "label": "Ethereum",
+  "name": "ethereum",
+  "apiVersion": "v1",
+  "internal": false,
+  "configurationType": "GLOBAL",
+  "deployment": {
+    "profiles": [
+      {
+        "name": "default",
+        "label": "Default",
+        "memory": 384,
+        "description": "Default configuration"
+      }
+    ],
+    "allowMultipleInstances": false
+  },
+  "icon48": "https://storage.googleapis.com/static.slingrs.io/platform/endpoints/ethereum.png",
+  "status": "ACTIVE",
+  "stores": [
+    {
+      "name": "contracts",
+      "indexes": [
+        {"alias": 1},
+        {"address": 1}
+      ]
+    },
+    {
+      "name": "blocks",
+      "indexes": [
+        {"hash": 1}
+      ]
+    },
+    {
+      "name": "transactions",
+      "indexes": [
+        {"txHash": 1}
+      ]
+    },
+    {
+      "name": "events",
+      "indexes": [
+        {"blockHash": 1}
+      ]
+    },
+    {
+      "name": "accounts",
+      "indexes": [
+        {"address": 1}
+      ]
+    }
+  ],
+  "events": [
+    {
+      "label": "Contract Event",
+      "name": "contractEvent",
+      "description": "Happens when receive a contract event from Ethereum network."
+    },
+    {
+      "label": "Transaction Confirmation",
+      "name": "transactionConfirmed",
+      "description": "Fire when transaction is confirmed.",
+      "callbackEvent": true
+    },
+    {
+      "label": "Transaction Rejected",
+      "name": "transactionRejected",
+      "description": "Fire when transaction is rejected.",
+      "callbackEvent": true
+    },
+    {
+      "label": "Transaction Removed",
+      "name": "transactionRemoved",
+      "description": "Fire when a transaction is removed due to a chain reorganization."
+    },
+    {
+      "label": "New block",
+      "name": "newBlock",
+      "description": "Sent when a new block is added to the chain"
+    },
+    {
+      "label": "Block removed",
+      "name": "blockRemoved",
+      "description": "Sent when a block is removed due to a chain reorganization"
+    }
+  ],
+  "functions": [
+    {
+      "label": "POST to REST RPC API",
+      "name": "_post"
+    },
+    {
+      "label": "Register and save contract",
+      "name": "_registerContract"
+    },
+    {
+      "label": "Get contract by alias",
+      "name": "_getContract"
+    },
+    {
+      "label": "Remove contract by alias",
+      "name": "_removeContract"
+    },
+    {
+      "label": "Encoded function",
+      "name": "_encodedFunction"
+    },
+    {
+      "label": "Decode result",
+      "name": "_decodeFunction"
+    },
+    {
+      "label": "Compile Solidity",
+      "name": "_compileSolidity"
+    },
+    {
+      "label": "Confirm Transaction",
+      "name": "_confirmTransaction",
+      "callbacks": [
+        {
+          "name": "transactionConfirmed"
+        },
+        {
+          "name": "transactionRejected"
+        }
+      ]
+    },
+    {
+      "label": "Create account",
+      "name": "_createAccount"
+    },
+    {
+      "label": "Import account",
+      "name": "_importAccount"
+    },
+    {
+      "label": "Export account",
+      "name": "_exportAccount"
+    },
+    {
+      "label": "Sign transaction",
+      "name": "_signTransaction"
+    },
+    {
+      "label": "Decode logs in receipt",
+      "name": "_decodeLogsInReceipt"
+    }
+  ],
+  "scripts": [
+    "functions.js",
+    "ethereum-fn-helpers.js"
+  ],
+  "configuration": [
+    {
+      "label": "Service",
+      "name": "service",
+      "type": "buttonsGroup",
+      "required": true,
+      "defaultValue": "infura",
+      "typeOptions": {
+        "allowCustom": true,
+        "possibleValues": [
+          {
+            "label": "Infura",
+            "name": "infura"
+          },
+          {
+            "label": "Custom node",
+            "name": "custom"
+          }
+        ]
+      }
+    },
+    {
+      "label": "Infura Network",
+      "name": "infuraNetwork",
+      "type": "buttonsGroup",
+      "required": true,
+      "defaultValue": "ropsten",
+      "visibility": "config.service == 'infura'",
+      "typeOptions": {
+        "allowCustom": true,
+        "possibleValues": [
+          {
+            "label": "Mainnet",
+            "name": "mainnet"
+          },
+          {
+            "label": "Ropsten",
+            "name": "ropsten"
+          },
+          {
+            "label": "Kovan",
+            "name": "kovan"
+          },
+          {
+            "label": "Rinkeby",
+            "name": "rinkeby"
+          },
+          {
+            "label": "Goerli",
+            "name": "goerli"
+          }
+        ]
+      }
+    },
+    {
+      "label": "Infura API key",
+      "name": "infuraApiKey",
+      "type": "text",
+      "showLabel": true,
+      "visibility": "config.service == 'infura'"
+    },
+    {
+      "label": "Infura API secret",
+      "name": "infuraApiSecret",
+      "type": "text",
+      "showLabel": true,
+      "visibility": "config.service == 'infura'"
+    },
+    {
+      "label": "Custom node URL",
+      "name": "customNodeUrl",
+      "type": "text",
+      "showLabel": true,
+      "visibility": "config.service == 'custom'"
+    },
+    {
+      "label": "Custom node WS URL",
+      "name": "customNodeWsUrl",
+      "type": "text",
+      "showLabel": true,
+      "visibility": "config.service == 'custom'"
+    },
+    {
+      "label": "Contracts",
+      "name": "contracts",
+      "type": "fieldsGroup",
+      "multiplicity": "many",
+      "typeOptions": {
+        "fields":[
+          {
+            "label": "Address",
+            "name": "address",
+            "type": "text",
+            "required": true
+          },
+          {
+            "label": "Alias",
+            "name": "alias",
+            "type": "text",
+            "required": false
+          },
+          {
+            "label": "ABI",
+            "name": "abi",
+            "type": "script",
+            "required": true,
+            "typeOptions": {
+              "wrapCode": false
+            }
+          }
+        ]
+      }
+    },
+    {
+      "label": "Confirmation timeout",
+      "name": "confirmationTimeout",
+      "type": "text",
+      "showLabel": true,
+      "required": true,
+      "defaultValue": "1800",
+      "typeOptions": {
+        "validation": "number"
+      }
+    },
+    {
+      "label": "Confirmation blocks",
+      "name": "confirmationBlocks",
+      "type": "text",
+      "showLabel": true,
+      "required": true,
+      "defaultValue": "0",
+      "typeOptions": {
+        "validation": "number"
+      }
+    },
+    {
+      "label": "Polling interval",
+      "name": "pollingInterval",
+      "type": "text",
+      "description": "Time interval for polling new blocks in milliseconds",
+      "showLabel": true,
+      "required": true,
+      "defaultValue": "5000",
+      "typeOptions": {
+        "validation": "number"
+      }
+    }
+  ]
+}
+
