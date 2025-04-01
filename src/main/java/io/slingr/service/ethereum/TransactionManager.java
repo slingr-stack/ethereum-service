@@ -1,10 +1,10 @@
-package io.slingr.endpoints.ethereum;
+package io.slingr.service.ethereum;
 
-import io.slingr.endpoints.services.AppLogs;
-import io.slingr.endpoints.services.Events;
-import io.slingr.endpoints.services.datastores.DataStore;
-import io.slingr.endpoints.services.datastores.DataStoreResponse;
-import io.slingr.endpoints.utils.Json;
+import io.slingr.services.services.AppLogs;
+import io.slingr.services.services.Events;
+import io.slingr.services.services.datastores.DataStore;
+import io.slingr.services.services.datastores.DataStoreResponse;
+import io.slingr.services.utils.Json;
 
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -46,8 +46,8 @@ public class TransactionManager {
         appLogger.info("Loading pending transactions from database");
         DataStoreResponse txsRes = transactionsDs.find(null, null, 1000);
         int pendingTxsCount = 0;
-        while (txsRes.getItems().size() > 0) {
-            List<Json> txs = txsRes.getItems();
+        while (txsRes.items().size() > 0) {
+            List<Json> txs = txsRes.items();
             for (Json tx : txs) {
                 if (Transaction.STATUS_PENDING.equals(tx.string(Transaction.STATUS))
                         || Transaction.STATUS_CONFIRMED.equals(tx.string(Transaction.STATUS))
@@ -57,7 +57,7 @@ public class TransactionManager {
                     pendingTxsCount++;
                 }
             }
-            txsRes = transactionsDs.find(null, txsRes.getOffset(), 1000);
+            txsRes = transactionsDs.find(null, txsRes.offset(), 1000);
         }
         appLogger.info(String.format("[%s] transactions were loaded", pendingTxsCount));
         // execute thread to clean blocks from the database
@@ -66,7 +66,7 @@ public class TransactionManager {
             lock.lock();
             try {
                 DataStoreResponse res = transactionsDs.find(null, null, 100);
-                List<Json> txs = res.getItems();
+                List<Json> txs = res.items();
                 int count = 0;
                 for (Json tx : txs) {
                     if (Transaction.STATUS_REMOVED.equals(tx.string(Transaction.STATUS))
@@ -185,7 +185,7 @@ public class TransactionManager {
 
     private void sendEvent(String event, Transaction transaction, Json res, String functionId) {
         if (isSharedEndpoint()) {
-            events.send(event, transaction.getApp(), transaction.getEnv(), res, functionId);
+            events.send(event, res, functionId);
         } else {
             events.send(event, res, functionId);
         }
@@ -195,7 +195,7 @@ public class TransactionManager {
         lock.lock();
         try {
             DataStoreResponse res = transactionsDs.find(Json.map().set(Transaction.BLOCK_HASH, block.getHash()));
-            List<Json> transactionsToRemove = res.getItems();
+            List<Json> transactionsToRemove = res.items();
             for (Json transactionJson : transactionsToRemove) {
                 Transaction transaction = new Transaction(transactionJson);
                 if (Transaction.STATUS_CONFIRMED.equals(transaction.getStatus())) {

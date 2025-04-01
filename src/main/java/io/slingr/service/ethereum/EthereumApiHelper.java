@@ -1,7 +1,8 @@
-package io.slingr.endpoints.ethereum;
+package io.slingr.service.ethereum;
 
-import io.slingr.endpoints.services.HttpService;
-import io.slingr.endpoints.utils.Json;
+import io.slingr.services.services.HttpService;
+import io.slingr.services.utils.Json;
+import io.slingr.services.ws.exchange.FunctionRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,7 +23,7 @@ public class EthereumApiHelper {
         Json body = this.getBody("eth_getBlockByHash", Json.list().push(blockHash).push(fullTransactions));
         logger.debug("Get Block by Hash: {} fullTransactions: {}", blockHash, fullTransactions);
         logger.debug("Body: {}", body.toString());
-        Json response = postAndGetResponse(body);
+        Json response = postAndGetResponse(body, "");
         return response != null ? response.json("result") : null;
     }
 
@@ -30,7 +31,7 @@ public class EthereumApiHelper {
         Json body = this.getBody("eth_getBlockByNumber", Json.list().push(number).push(fullTransactions));
         logger.debug("Get Block by Number: {} fullTransactions: {}", number, fullTransactions);
         logger.debug("Body: {}", body.toString());
-        Json response = postAndGetResponse(body);
+        Json response = postAndGetResponse(body, "");
         return response != null ? response.json("result") : null;
     }
 
@@ -38,7 +39,7 @@ public class EthereumApiHelper {
         Json body = this.getBody("eth_getTransactionReceipt", Json.list().push(txHash));
         logger.debug("Get transaction: {}", txHash);
         logger.debug("Body: {}", body.toString());
-        Json response = postAndGetResponse(body);
+        Json response = postAndGetResponse(body,"");
         return response != null ? response.json("result") : null;
     }
 
@@ -46,7 +47,7 @@ public class EthereumApiHelper {
         Json body = this.getBody("eth_getLogs", Json.list().push(Json.map().set("blockHash", hash)));
         logger.debug("Get logs by block: {}", hash);
         logger.debug("Body: {}", body.toString());
-        Json response = postAndGetResponse(body);
+        Json response = postAndGetResponse(body,"");
         return response != null && response.jsons("result") != null ? response.jsons("result") : new ArrayList<>();
     }
 
@@ -58,9 +59,9 @@ public class EthereumApiHelper {
                 .set("params", params);
     }
 
-    private Json postAndGetResponse(Json body) {
+    private Json postAndGetResponse(Json body, String functionId) {
         try {
-            return this.httpService.post(body);
+            return this.httpService.defaultPostRequest(new FunctionRequest(body));
         } catch (Exception e) {
             logger.error("Error posting json: {}", body.toString());
             logger.error(e.getMessage(), e);

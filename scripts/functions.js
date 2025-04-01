@@ -7,7 +7,7 @@ function isUnit(str) {
     return units.indexOf(str) > 0;
 }
 
-endpoint.utils = {};
+exports.utils = {};
 
 /**
  * Checks if the given string is an address
@@ -16,7 +16,7 @@ endpoint.utils = {};
  * @param {String} address the given HEX adress
  * @return {Boolean}
  */
-endpoint.utils.isAddress = function (address) {
+exports.utils.isAddress = function (address) {
     if (!/^(0x)?[0-9a-f]{40}$/i.test(address)) {
 // check if it has the basic requirements of an address
         return false;
@@ -27,30 +27,30 @@ endpoint.utils.isAddress = function (address) {
     return false;
 };
 
-endpoint.utils.getContractAddressByAlias = function (alias) {
+exports.utils.getContractAddressByAlias = function (alias) {
     if (!alias) {
         throw 'Alias cannot be empty';
     }
-    var res = endpoint.getContract(alias);
+    var res = app.ethereum.getContract(alias);
     if (res) {
         return res.address;
     }
     return null;
 };
 
-endpoint.utils.getContractABIByAlias = function (aliasOrAddress) {
+exports.utils.getContractABIByAlias = function (aliasOrAddress) {
     if (!aliasOrAddress) {
         throw 'Alias or address cannot be empty';
     }
-    var res = endpoint.getContract(aliasOrAddress);
+    var res = app.ethereum.getContract(aliasOrAddress);
     if (res) {
         return res.abi;
     }
     return null;
 };
 
-endpoint.utils.getFunctionDefFromABI = function (fnName, aliasOrAddress) {
-    var contractABI = endpoint.utils.getContractABIByAlias(aliasOrAddress);
+exports.utils.getFunctionDefFromABI = function (fnName, aliasOrAddress) {
+    var contractABI = app.ethereum.utils.getContractABIByAlias(aliasOrAddress);
     if (contractABI && contractABI.length) {
         for (var c in contractABI) {
             if (contractABI[c].name == fnName) {
@@ -61,7 +61,7 @@ endpoint.utils.getFunctionDefFromABI = function (fnName, aliasOrAddress) {
     return null;
 };
 
-endpoint.utils.processSubmittedTransaction = function (msg, res) {
+exports.utils.processSubmittedTransaction = function (msg, res) {
     sys.storage.put("ethereum-endpoint-"+msg.options.from+'-nonce', msg.data.nonce, {ttl: 2 * 60 * 1000});
     globalUnlock(msg.options.from);
     if (msg.options.submitted) {
@@ -84,7 +84,7 @@ endpoint.utils.processSubmittedTransaction = function (msg, res) {
                 var msg = data.msg;
                 var res = data.res;
                 var receipt = receiptObj.data;
-                var events = app.endpoints[msg.endpointName]._decodeLogsInReceipt(receipt);
+                var events = svc.ethereum.decodeLogsInReceipt(receipt);
                 var func = 'var callback = ' + msg.options.confirmed + ';' +
                     '\ncallback(context.msg, context.res, context.receipt, context.events);';
                 sys.utils.script.eval(func, {msg: msg, res: res, receipt: receipt, events: events});
@@ -113,11 +113,11 @@ endpoint.utils.processSubmittedTransaction = function (msg, res) {
         if (msg.options.from) {
             txOptions.from = msg.options.from;
         }
-        app.endpoints[msg.endpointName]._confirmTransaction(txOptions, callbackData, txCallbacks);
+        svc.ethereum.confirmTransaction(txOptions, callbackData, txCallbacks);
     }
 };
 
-endpoint.utils.processDeclinedTransaction = function (msg, res) {
+exports.utils.processDeclinedTransaction = function (msg, res) {
     sys.storage.remove("ethereum-endpoint-"+msg.options.from+"-nonce");
     globalUnlock(msg.options.from);
     if (msg.options.error) {
@@ -132,7 +132,7 @@ endpoint.utils.processDeclinedTransaction = function (msg, res) {
     }
 };
 
-endpoint.utils.processErrorTransaction = function (msg, res) {
+exports.utils.processErrorTransaction = function (msg, res) {
     globalUnlock(msg.options.from);
     if (msg.options.error) {
         var func = 'var callback = ' + msg.options.error + ';' +
@@ -141,7 +141,7 @@ endpoint.utils.processErrorTransaction = function (msg, res) {
     }
 };
 
-endpoint.utils.internalSendTransaction = function (options) {
+exports.utils.internalSendTransaction = function (options) {
     var rawTx = {
         nonce: options.nonce,
         to: options.to,
@@ -178,7 +178,7 @@ endpoint.utils.internalSendTransaction = function (options) {
                 name: 'sendTransaction',
                 data: rawTx,
                 netId: options.netId,
-                endpointName: endpoint._name,
+                //serviceName: endpoint._name,
                 options: options,
                 callbacks: {
                     approved: function (msg, res) {
@@ -186,13 +186,13 @@ endpoint.utils.internalSendTransaction = function (options) {
                             sys.logs.warn('Response is empty in approve callback from ' + pluginName);
                             return;
                         }
-                        app.endpoints[msg.endpointName].utils.processSubmittedTransaction(msg, res);
+                        svc.ethereum.utils.processSubmittedTransaction(msg, res);
                     },
                     declined: function (msg, res) {
-                        app.endpoints[msg.endpointName].utils.processDeclinedTransaction(msg, res);
+                        svc.ethereum.utils.processDeclinedTransaction(msg, res);
                     },
                     error: function (msg, res) {
-                        app.endpoints[msg.endpointName].utils.processErrorTransaction(msg, res);
+                        svc.ethereum.utils.processErrorTransaction(msg, res);
                     }
                 }
             });
@@ -201,14 +201,14 @@ endpoint.utils.internalSendTransaction = function (options) {
         case 'managed':
             var signedRawTx;
             var msg = {
-                endpointName: endpoint._name,
+                //endpointName: endpoint._name,
                 data: rawTx,
                 options: options
             };
             msg = JSON.parse(sys.utils.text.stringify(msg));
             if (!rawTx.gas) {
                 try {
-                    var estimatedGas = endpoint.eth.estimateGas(rawTx);
+                    var estimatedGas = app.ethereumHelpers.estimateGas(rawTx);
                     rawTx['gas'] = estimatedGas;
                 } catch (e) {
                     var error = {
@@ -221,13 +221,13 @@ endpoint.utils.internalSendTransaction = function (options) {
                         error.errorMessage = error.errorMessage + ': ' + e.message;
                     }
                     sys.logs.warn('Cannot calculate gas', e);
-                    endpoint.utils.processErrorTransaction(msg, error);
+                    app.ethereum.utils.processErrorTransaction(msg, error);
                     return;
                 }
             }
             if (!rawTx.gasPrice) {
                 try {
-                    var gasPrice = endpoint.eth.gasPrice();
+                    var gasPrice = app.ethereumHelpers.gasPrice();
                     rawTx['gasPrice'] = gasPrice;
                 } catch (e) {
                     var error = {
@@ -240,13 +240,13 @@ endpoint.utils.internalSendTransaction = function (options) {
                         error.errorMessage = error.errorMessage + ': ' + e.message;
                     }
                     sys.logs.warn('Cannot calculate gas price', e);
-                    endpoint.utils.processErrorTransaction(msg, error);
+                    app.ethereum.utils.processErrorTransaction(msg, error);
                     return;
                 }
             }
             try {
                 rawTx.netId = options.netId;
-                signedRawTx = endpoint._signTransaction(rawTx);
+                signedRawTx = svc.ethereum.signTransaction(rawTx);
             } catch (e) {
                 var error = {
                     errorMessage: 'Cannot sign transaction with given account',
@@ -258,12 +258,12 @@ endpoint.utils.internalSendTransaction = function (options) {
                     error.errorMessage = error.errorMessage + ': ' + e.message;
                 }
                 sys.logs.warn('Cannot sign transaction', e);
-                endpoint.utils.processErrorTransaction(msg, error);
+                app.ethereum.utils.processErrorTransaction(msg, error);
                 return;
             }
             var res;
             try {
-                res = endpoint.eth.sendRawTransaction(signedRawTx.data);
+                res = app.ethereumHelpers.sendRawTransaction(signedRawTx.data);
             } catch (e) {
                 var error = {
                     errorMessage: 'Cannot send transaction to the Ethereum network',
@@ -275,10 +275,10 @@ endpoint.utils.internalSendTransaction = function (options) {
                     error.errorMessage = error.errorMessage + ': ' + e.message;
                 }
                 sys.logs.warn('Cannot send transaction to the Ethereum network', e);
-                endpoint.utils.processErrorTransaction(msg, error);
+                app.ethereum.utils.processErrorTransaction(msg, error);
                 return;
             }
-            endpoint.utils.processSubmittedTransaction(msg, {txHash: res});
+            app.ethereum.utils.processSubmittedTransaction(msg, {txHash: res});
             break;
         default:
             throw 'Unsupported sign method';
@@ -296,11 +296,11 @@ endpoint.utils.internalSendTransaction = function (options) {
  * @returns {*} a JSON with all contracts with their compiled code and ABI. If you specified
  *              contractName, it will only return the JSON for the given contract.
  */
-endpoint.compileSolidity = function (code, contractName, libraries) {
+exports.compileSolidity = function (code, contractName, libraries) {
     if (!code) {
         throw 'Code cannot be empty';
     }
-    var res = endpoint._compileSolidity({code: code, libraries: libraries});
+    var res = svc.ethereum.compileSolidity({code: code, libraries: libraries});
     if (contractName) {
         var endsWith = function endsWith(str, suffix) {
             return str.indexOf(suffix, str.length - suffix.length) !== -1;
@@ -324,15 +324,15 @@ endpoint.compileSolidity = function (code, contractName, libraries) {
  * @param params an array with the params of the function
  * @returns {*} a string with the encoded function call
  */
-endpoint.encodeFunction = function (aliasOrAddress, fnName, params) {
+exports.encodeFunction = function (aliasOrAddress, fnName, params) {
     params = params || [];
-    var functionAbiDef = endpoint.utils.getFunctionDefFromABI(fnName, aliasOrAddress);
+    var functionAbiDef = app.ethereum.utils.getFunctionDefFromABI(fnName, aliasOrAddress);
     if (!functionAbiDef) {
         throw 'Cannot find function [' + fnName + '] in ABI';
     }
     var data;
     try {
-        data = endpoint._encodedFunction({fnAbi: functionAbiDef, params: params});
+        data = svc.ethereum.encodedFunction({fnAbi: functionAbiDef, params: params});
     } catch (e) {
         throw 'There was a problem encoding params: ' + sys.exceptions.getMessage(e) + '. Code: ' + sys.exceptions.getCode(e);
     }
@@ -349,15 +349,15 @@ endpoint.encodeFunction = function (aliasOrAddress, fnName, params) {
  * @param fromAddress origin account address; optional
  * @returns {*} an array with the response of the function
  */
-endpoint.callFunction = function (aliasOrAddress, fnName, params, fromAddress) {
+exports.callFunction = function (aliasOrAddress, fnName, params, fromAddress) {
     params = params || [];
-    var functionAbiDef = endpoint.utils.getFunctionDefFromABI(fnName, aliasOrAddress);
+    var functionAbiDef = app.ethereum.utils.getFunctionDefFromABI(fnName, aliasOrAddress);
     if (!functionAbiDef) {
         throw 'Cannot find function [' + fnName + '] in ABI';
     }
     var data;
     try {
-        data = endpoint._encodedFunction({fnAbi: functionAbiDef, params: params});
+        data = svc.ethereum.encodedFunction({fnAbi: functionAbiDef, params: params});
     } catch (e) {
         throw 'There was a problem encoding params: ' + sys.exceptions.getMessage(e) + '. Code: ' + sys.exceptions.getCode(e);
     }
@@ -367,14 +367,14 @@ endpoint.callFunction = function (aliasOrAddress, fnName, params, fromAddress) {
 
     var callObject = {
         from: fromAddress,
-        to: endpoint.utils.isAddress(aliasOrAddress) ? aliasOrAddress : endpoint.utils.getContractAddressByAlias(aliasOrAddress),
+        to: app.ethereum.utils.isAddress(aliasOrAddress) ? aliasOrAddress : app.ethereum.utils.getContractAddressByAlias(aliasOrAddress),
         data: data
     };
     try {
-        var data = endpoint.eth.call(callObject, 'latest');
+        var data = app.ethereumHelpers.call(callObject, 'latest');
         var decodedData;
         try {
-            decodedData = endpoint._decodeFunction({fnAbi: functionAbiDef, data: data});
+            decodedData = svc.ethereum.decodeFunction({fnAbi: functionAbiDef, data: data});
         } catch (e) {
             sys.logs.error('Error decoding response of function [' + fnName + '] in contract [' + aliasOrAddress + ']', e);
             throw 'There was a problem decoding data returned by function [' + fnName + '] in contract [' + aliasOrAddress + ']';
@@ -395,23 +395,23 @@ endpoint.callFunction = function (aliasOrAddress, fnName, params, fromAddress) {
  * @param params an array with the params of the function
  * @param fromAddress origin account address
  */
-endpoint.estimateTransaction = function (aliasOrAddress, fnName, params, fromAddress) {
+exports.estimateTransaction = function (aliasOrAddress, fnName, params, fromAddress) {
     var rawTx = {
-        to: endpoint.utils.isAddress(aliasOrAddress) ? aliasOrAddress : endpoint.utils.getContractAddressByAlias(aliasOrAddress),
+        to: app.ethereum.utils.isAddress(aliasOrAddress) ? aliasOrAddress : app.ethereum.utils.getContractAddressByAlias(aliasOrAddress),
         from: fromAddress
     };
-    var functionAbiDef = endpoint.utils.getFunctionDefFromABI(fnName, aliasOrAddress);
+    var functionAbiDef = app.ethereum.utils.getFunctionDefFromABI(fnName, aliasOrAddress);
     if (!functionAbiDef) {
         throw 'Cannot find function [' + fnName + '] in ABI';
     }
     var data;
     try {
-        data = endpoint._encodedFunction({fnAbi: functionAbiDef, params: params});
+        data = svc.ethereum.encodedFunction({fnAbi: functionAbiDef, params: params});
     } catch (e) {
         throw 'There was a problem encoding params: ' + sys.exceptions.getMessage(e) + '. Code: ' + sys.exceptions.getCode(e);
     }
     rawTx.data = data;
-    var estimatedGas = endpoint.eth.estimateGas(rawTx);
+    var estimatedGas = app.ethereumHelpers.estimateGas(rawTx);
     return estimatedGas;
 };
 
@@ -428,18 +428,18 @@ endpoint.estimateTransaction = function (aliasOrAddress, fnName, params, fromAdd
  * @param options other Ethereum parameters needed for transaction like gas, gasPrice,
  *                and callbacks: submitted, confirmed, error.
  */
-endpoint.sendTransaction = function (aliasOrAddress, fnName, params, fromAddress, signMethod, options) {
+exports.sendTransaction = function (aliasOrAddress, fnName, params, fromAddress, signMethod, options) {
     globalLock(fromAddress);
     try {
         options = options || {};
         params = params || [];
-        var functionAbiDef = endpoint.utils.getFunctionDefFromABI(fnName, aliasOrAddress);
+        var functionAbiDef = app.ethereum.utils.getFunctionDefFromABI(fnName, aliasOrAddress);
         if (!functionAbiDef) {
             throw 'Cannot find function [' + fnName + '] in ABI';
         }
         var data;
         try {
-            data = endpoint._encodedFunction({fnAbi: functionAbiDef, params: params});
+            data = svc.ethereum.encodedFunction({fnAbi: functionAbiDef, params: params});
         } catch (e) {
             throw 'There was a problem encoding params: ' + sys.exceptions.getMessage(e) + '. Code: ' + sys.exceptions.getCode(e);
         }
@@ -455,12 +455,12 @@ endpoint.sendTransaction = function (aliasOrAddress, fnName, params, fromAddress
         if (!options.nonce) {
             options.nonce = getNonce(fromAddress);
         }
-        options.to = endpoint.utils.isAddress(aliasOrAddress) ? aliasOrAddress : endpoint.utils.getContractAddressByAlias(aliasOrAddress);
+        options.to = app.ethereum.utils.isAddress(aliasOrAddress) ? aliasOrAddress : app.ethereum.utils.getContractAddressByAlias(aliasOrAddress);
         options.data = data;
-        options.netId = endpoint.net.version();
+        options.netId = app.ethereumHelpers.net.version();
         options.from = fromAddress;
         options.signMethod = signMethod;
-        endpoint.utils.internalSendTransaction(options);
+        app.ethereum.utils.internalSendTransaction(options);
     } catch (e) {
         globalUnlock(fromAddress);
         throw e;
@@ -479,7 +479,7 @@ endpoint.sendTransaction = function (aliasOrAddress, fnName, params, fromAddress
  * @param options other Ethereum parameters needed for transaction like gas, gasPrice,
  *                and callbacks: submitted, confirmed, error.
  */
-endpoint.sendEther = function (aliasOrAddress, amount, fromAddress, signMethod, options) {
+exports.sendEther = function (aliasOrAddress, amount, fromAddress, signMethod, options) {
     globalLock(fromAddress);
     try {
         options = options || {};
@@ -492,12 +492,12 @@ endpoint.sendEther = function (aliasOrAddress, amount, fromAddress, signMethod, 
         if (!options.nonce) {
             options.nonce = getNonce(fromAddress);
         }
-        options.to = endpoint.utils.isAddress(aliasOrAddress) ? aliasOrAddress : endpoint.utils.getContractAddressByAlias(aliasOrAddress);
+        options.to = app.ethereum.utils.isAddress(aliasOrAddress) ? aliasOrAddress : app.ethereum.utils.getContractAddressByAlias(aliasOrAddress);
         options.value = amount;
-        options.netId = endpoint.net.version();
+        options.netId = app.ethereumHelpers.net.version();
         options.from = fromAddress;
         options.signMethod = signMethod;
-        endpoint.utils.internalSendTransaction(options);
+        app.ethereum.utils.internalSendTransaction(options);
     } catch (e) {
         globalUnlock(fromAddress);
         throw e;
@@ -515,10 +515,10 @@ endpoint.sendEther = function (aliasOrAddress, amount, fromAddress, signMethod, 
  * @param options other Ethereum parameters needed for transaction like gas, gasPrice,
  *                and callbacks: submitted, confirmed, error.
  */
-endpoint.createContract = function (alias, compiledCode, abi, fromAddress, signMethod, options) {
+exports.createContract = function (alias, compiledCode, abi, fromAddress, signMethod, options) {
     globalLock(fromAddress);
     try {
-        if (alias && endpoint.getContract(alias)) {
+        if (alias && app.ethereum.getContract(alias)) {
             throw 'There is another contract with alias [' + alias + ']';
         }
         if (!compiledCode) {
@@ -534,7 +534,7 @@ endpoint.createContract = function (alias, compiledCode, abi, fromAddress, signM
         if (!options.nonce) {
             options.nonce = getNonce(fromAddress);
         }
-        options.netId = endpoint.net.version();
+        options.netId = app.ethereumHelpers.net.version();
         options.from = fromAddress;
         options.signMethod = signMethod;
         options.originalConfirmedCallback = options.confirmed;
@@ -555,7 +555,7 @@ endpoint.createContract = function (alias, compiledCode, abi, fromAddress, signM
             var func = 'var callback = ' + msg.options.originalConfirmedCallback + '; callback(context.msg, context.res, context.receipt);';
             sys.utils.script.eval(func, {msg: msg, res: res, receipt: receipt});
         };
-        endpoint.utils.internalSendTransaction(options);
+        app.ethereum.utils.internalSendTransaction(options);
     } catch (e) {
         globalUnlock(fromAddress);
         throw e;
@@ -569,11 +569,11 @@ endpoint.createContract = function (alias, compiledCode, abi, fromAddress, signM
  * @param contractAddress the Ethereum address of the contract
  * @param abi the ABI of the contract (string)
  */
-endpoint.registerContract = function (alias, contractAddress, abi) {
+exports.registerContract = function (alias, contractAddress, abi) {
     if (!contractAddress) {
         throw 'Address is required';
     }
-    if (!endpoint.utils.isAddress(contractAddress)) {
+    if (!app.ethereum.utils.isAddress(contractAddress)) {
         throw 'Invalid address';
     }
     if (!abi) {
@@ -583,7 +583,7 @@ endpoint.registerContract = function (alias, contractAddress, abi) {
         alias = contractAddress;
     }
 
-    endpoint._registerContract({
+    svc.ethereum.registerContract({
         alias: alias,
         address: contractAddress,
         abi: JSON.parse(abi)
@@ -596,15 +596,15 @@ endpoint.registerContract = function (alias, contractAddress, abi) {
  * @param aliasOrAddress the alias or address of the contract
  * @returns {*} the JSON of the contract
  */
-endpoint.getContract = function (aliasOrAddress) {
+exports.getContract = function (aliasOrAddress) {
     if (!aliasOrAddress) {
         throw 'Alias or address cannot be empty';
     }
     var isAddress = false;
-    if (endpoint.utils.isAddress(aliasOrAddress)) {
+    if (app.ethereum.utils.isAddress(aliasOrAddress)) {
         isAddress = true;
     }
-    var contract = endpoint._getContract({aliasOrAddress: aliasOrAddress, isAddress: isAddress});
+    var contract = svc.ethereum.getContract({aliasOrAddress: aliasOrAddress, isAddress: isAddress});
     if (contract && contract.alias) {
         return contract;
     }
@@ -617,15 +617,15 @@ endpoint.getContract = function (aliasOrAddress) {
  * @param aliasOrAddress the alias or address of the contract to remove
  * @returns {*} the contract removed
  */
-endpoint.removeContract = function (aliasOrAddress) {
+exports.removeContract = function (aliasOrAddress) {
     if (!aliasOrAddress) {
         throw 'Alias or address cannot be empty';
     }
     var isAddress = false;
-    if (endpoint.utils.isAddress(aliasOrAddress)) {
+    if (app.ethereum.utils.isAddress(aliasOrAddress)) {
         isAddress = true;
     }
-    return endpoint._removeContract({alias: aliasOrAddress, isAddress: isAddress});
+    return svc.ethereum.removeContract({alias: aliasOrAddress, isAddress: isAddress});
 };
 
 /**
@@ -633,9 +633,9 @@ endpoint.removeContract = function (aliasOrAddress) {
  *
  * @returns {string} the address of the created account
  */
-endpoint.createAccount = function () {
-    var res = endpoint._createAccount({});
-    return endpoint.toChecksumAddress(res.address);
+exports.createAccount = function () {
+    var res = svc.ethereum.createAccount({});
+    return app.ethereum.toChecksumAddress(res.address);
 };
 
 /**
@@ -645,12 +645,12 @@ endpoint.createAccount = function () {
  * @param privateKey the private key in hexadecimal
  * @returns {string} the address of the new account
  */
-endpoint.importAccount = function (privateKey) {
+exports.importAccount = function (privateKey) {
     if (!privateKey) {
         throw 'Private key cannot be empty';
     }
-    var res = endpoint._importAccount({privateKey: privateKey});
-    return endpoint.toChecksumAddress(res.address);
+    var res = svc.ethereum.importAccount({privateKey: privateKey});
+    return app.ethereum.toChecksumAddress(res.address);
 };
 
 /**
@@ -659,12 +659,12 @@ endpoint.importAccount = function (privateKey) {
  * @param address the address of the key to export
  * @returns {*} a map with fields `address` and `privateKey`
  */
-endpoint.exportAccount = function (address) {
+exports.exportAccount = function (address) {
     if (!address) {
         throw 'Address cannot be empty';
     }
-    var res = endpoint._exportAccount({address: address});
-    res.address = endpoint.toChecksumAddress(res.address);
+    var res = svc.ethereum.exportAccount({address: address});
+    res.address = app.ethereum.toChecksumAddress(res.address);
     return res;
 };
 
@@ -674,7 +674,7 @@ endpoint.exportAccount = function (address) {
  * @param address to convert
  * @returns {string} converted address
  */
-endpoint.toChecksumAddress = function (address) {
+exports.toChecksumAddress = function (address) {
     address = address.toLowerCase().replace('0x', '');
     var hash = sys.utils.crypto.keccak(address).toString('hex');
     var ret = '0x';
@@ -692,23 +692,23 @@ endpoint.toChecksumAddress = function (address) {
 /**
  * Returns the network the endpoint is connected to.
  */
-endpoint.getNetwork = function () {
-    return endpoint._configuration.networkUrl;
+exports.getNetwork = function () {
+    return svc.ethereum.configuration.networkUrl;
 };
 
 ///////////////////////////////////////
 // Public API - Generic Functions
 ///////////////////////////////////////
 
-endpoint.post = function (url, options) {
+exports.post = function (url, options) {
     options = checkHttpOptions(url, options);
-    return endpoint._post(options);
+    return app.ethereum._post(options);
 };
 
-var _overridePost = endpoint._post;
-endpoint._post = function (options) {
+var _overridePost = app.ethereum._post;
+exports._post = function (options) {
     var body = (options && options.body) ? options.body : false;
-    if (!body || !endpoint.shouldAllow || endpoint.shouldAllow.indexOf(body.method) < 0) {
+    if (!body || !app.ethereumHelpers.shouldAllow || app.ethereumHelpers.shouldAllow.indexOf(body.method) < 0) {
         throw 'Forbidden ' + body.method;
     }
     return _overridePost(options);
@@ -767,6 +767,6 @@ function getNonce(address) {
         var newNonce = parseInt(lastNonce) + 1;
         return '0x'+newNonce.toString(16);
     } else {
-        return endpoint.eth.transactionCount(address, 'pending');
+        return app.ethereumHelpers.transactionCount(address, 'pending');
     }
 }

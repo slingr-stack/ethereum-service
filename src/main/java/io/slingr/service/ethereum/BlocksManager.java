@@ -1,10 +1,10 @@
-package io.slingr.endpoints.ethereum;
+package io.slingr.service.ethereum;
 
 import com.google.common.collect.EvictingQueue;
-import io.slingr.endpoints.services.AppLogs;
-import io.slingr.endpoints.services.datastores.DataStore;
-import io.slingr.endpoints.services.datastores.DataStoreResponse;
-import io.slingr.endpoints.utils.Json;
+import io.slingr.services.services.AppLogs;
+import io.slingr.services.services.datastores.DataStore;
+import io.slingr.services.services.datastores.DataStoreResponse;
+import io.slingr.services.utils.Json;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,7 +94,7 @@ public class BlocksManager {
             lock.lock();
             try {
                 DataStoreResponse res = blocksDs.find();
-                List<Json> blocks = res.getItems();
+                List<Json> blocks = res.items();
                 int amountToRemove = blocks.size() - (MAX_BLOCKS * 2);
                 if (amountToRemove > 0) {
                     appLogger.info(String.format("Removing [%s] old blocks", amountToRemove));
@@ -179,7 +179,7 @@ public class BlocksManager {
     private List<Json> getLastBlocksInDs() {
         Json filter = Json.map().set(Block.REMOVED, "false");
         DataStoreResponse res = blocksDs.find(filter);
-        List<Json> blocks = res.getItems();
+        List<Json> blocks = res.items();
         // from newer to older
         Collections.reverse(blocks);
         // just keep the last blocks in memory

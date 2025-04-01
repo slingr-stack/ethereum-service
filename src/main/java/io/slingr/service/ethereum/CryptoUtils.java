@@ -1,10 +1,7 @@
-package io.slingr.endpoints.ethereum;
+package io.slingr.service.ethereum;
 
-import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.misc.BASE64Decoder;
-import sun.misc.BASE64Encoder;
 
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
@@ -15,6 +12,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
+import java.util.Base64;
 
 /**
  * Created by dgaviola on 01/08/18.
@@ -28,7 +26,7 @@ public class CryptoUtils {
     private Cipher dcipher;
 
     public CryptoUtils(String password) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, InvalidKeySpecException {
-        byte[] encodedKey = Base64.decodeBase64(password);
+        byte[] encodedKey = Base64.getDecoder().decode(password);
         SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
         PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), encodedKey, 65536, 128);
         SecretKey tmp = factory.generateSecret(spec);
@@ -41,7 +39,8 @@ public class CryptoUtils {
 
     public String encrypt(String plaintext) {
         try {
-            return new BASE64Encoder().encode(ecipher.doFinal(plaintext.getBytes("UTF8")));
+            byte[] encryptedBytes = ecipher.doFinal(plaintext.getBytes("UTF8"));
+            return Base64.getEncoder().encodeToString(encryptedBytes);
         } catch (Exception e) {
             return plaintext;
         }
@@ -49,7 +48,8 @@ public class CryptoUtils {
 
     public String decrypt(String ciphertext) {
         try {
-            return new String(dcipher.doFinal(new BASE64Decoder().decodeBuffer(ciphertext)), "UTF8");
+            byte[] decodedBytes = Base64.getDecoder().decode(ciphertext);
+            return new String(dcipher.doFinal(decodedBytes), "UTF8");
         } catch (Exception e) {
             return ciphertext;
         }

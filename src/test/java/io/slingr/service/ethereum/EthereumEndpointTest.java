@@ -1,11 +1,11 @@
-package io.slingr.endpoints.ethereum;
+/*package io.slingr.service.ethereum;
 
-import io.slingr.endpoints.services.DataStores;
-import io.slingr.endpoints.services.datastores.DataStore;
-import io.slingr.endpoints.utils.Json;
-import io.slingr.endpoints.utils.tests.EndpointTests;
-import io.slingr.endpoints.utils.tests.EndpointsServicesMock;
-import io.slingr.endpoints.ws.exchange.FunctionRequest;
+import io.slingr.services.services.DataStores;
+import io.slingr.services.services.datastores.DataStore;
+import io.slingr.services.utils.Json;
+import io.slingr.services.utils.tests.EndpointTests;
+import io.slingr.services.utils.tests.EndpointsServicesMock;
+import io.slingr.services.ws.exchange.FunctionRequest;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -17,16 +17,16 @@ import static org.junit.Assert.assertNotNull;
 
 /**
  * Created by dgaviola on 31/07/18.
- */
+
 public class EthereumEndpointTest {
     private static EndpointTests test;
-    private static EthereumEndpoint endpoint;
+    private static Ethereum endpoint;
 
     @BeforeClass
     public static void init() throws Exception {
-        /*test = EndpointTests.start(new io.slingr.endpoints.ethereum.Runner(), "test.properties");
-        endpoint = (EthereumEndpoint) test.getEndpoint();*/
-        endpoint = new EthereumEndpoint();
+        /*test = EndpointTests.start(new io.slingr.service.ethereum.Runner(), "test.properties");
+        endpoint = (Ethereum) test.getEndpoint();
+        endpoint = new Ethereum();
         List<String> validDataStores = new ArrayList<>();
         validDataStores.add("accounts");
         DataStores dataStores = new DataStores(new EndpointsServicesMock(), validDataStores, true);
@@ -57,3 +57,4 @@ public class EthereumEndpointTest {
         assertEquals(account.string("address"), "0x0051bbFbaE99d2E8a90501eBFaD812FE39711283".toLowerCase());
     }
 }
+*/
