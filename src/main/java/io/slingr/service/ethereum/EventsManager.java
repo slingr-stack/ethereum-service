@@ -1,11 +1,11 @@
-package io.slingr.endpoints.ethereum;
+package io.slingr.service.ethereum;
 
 import com.google.common.collect.EvictingQueue;
-import io.slingr.endpoints.services.AppLogs;
-import io.slingr.endpoints.services.Events;
-import io.slingr.endpoints.services.datastores.DataStore;
-import io.slingr.endpoints.services.datastores.DataStoreResponse;
-import io.slingr.endpoints.utils.Json;
+import io.slingr.services.services.AppLogs;
+import io.slingr.services.services.Events;
+import io.slingr.services.services.datastores.DataStore;
+import io.slingr.services.services.datastores.DataStoreResponse;
+import io.slingr.services.utils.Json;
 import org.apache.commons.lang.StringUtils;
 
 import java.util.HashMap;
@@ -71,14 +71,14 @@ public class EventsManager {
         appLogger.info("Done loading contracts' topics");
         DataStoreResponse dynamicContracts = contractsDs.find();
         appLogger.info("Loading dynamic contracts' topics...");
-        for (Json co : dynamicContracts.getItems()) {
+        for (Json co : dynamicContracts.items()) {
             appLogger.info("Subscribing to events in contract " + co.string("address"));
             registerContract(co.string("address"), co.json("abi"));
         }
         appLogger.info("Done loading dynamic contracts' topics");
         // load events from database that have not been removed or sent already
         DataStoreResponse eventsRes = eventsDs.find(Json.map().set("removed", "false").set("sent", "false"));
-        for (Json json : eventsRes.getItems()) {
+        for (Json json : eventsRes.items()) {
             pendingEvents.add(json);
         }
         // execute thread to clean blocks from the database
@@ -87,7 +87,7 @@ public class EventsManager {
             lock.lock();
             try {
                 DataStoreResponse res = eventsDs.find();
-                List<Json> blocks = res.getItems();
+                List<Json> blocks = res.items();
                 int amountToRemove = blocks.size() - (MAX_BLOCKS * 10);
                 if (amountToRemove > 0) {
                     appLogger.info(String.format("Removing [%s] old block events", amountToRemove));
@@ -248,7 +248,7 @@ public class EventsManager {
                 event.set(APP_EVENTS_EVENT_NAME, parsedLog.string("eventName"));
                 event.set(APP_EVENTS_EVENT_DATA, parsedLog.json("eventData"));
                 // event should be sent to the proper apps
-                if (isSharedEndpoint()) {
+                if (isSharedService()) {
                     events.send(EVENT_CONTRACT_EVENT, logsDb.string("app"), logsDb.string("env"), event);
                 } else {
                     events.send(EVENT_CONTRACT_EVENT, event);
@@ -257,7 +257,7 @@ public class EventsManager {
         }
     }
 
-    private boolean isSharedEndpoint() {
+    private boolean isSharedService() {
         return config != null && config.bool("shared", false);
     }
 }
