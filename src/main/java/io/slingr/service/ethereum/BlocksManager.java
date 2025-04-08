@@ -64,7 +64,7 @@ public class BlocksManager {
                 }
                 newBlocks.add(lastBlock);
                 String parentHash = lastBlock.string("parentHash");
-                // it can happen that the endpoint gets behind, and we need to process many blocks at the same time
+                // it can happen that the service gets behind, and we need to process many blocks at the same time
                 // we will do this for a maximum of 360 blocks, which would be like an hour
                 while (!lastBlocksHashes.contains(parentHash) && newBlocks.size() < MAX_BLOCKS_DELAY) {
                     appLogger.info(String.format("Getting block [%s] from ethereum network", parentHash));

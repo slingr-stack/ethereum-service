@@ -23,12 +23,13 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static org.ethereum.util.ByteUtil.longToBytesNoLeadZeroes;
 
 /**
- * <p>Ethereum endpoint
+ * <p>Ethereum service
  * <p>
  * <p>Created by hpacini on 12/03/18.
  */
@@ -103,9 +104,10 @@ public class Ethereum extends HttpService {
         return networkUrl;
     }
 
-    public void endpointStarted() {
+    @Override
+    public void serviceStarted() {
         ethereumHelper = new EthereumHelper();
-        ethereumApiHelper = new EthereumApiHelper(httpService());
+        ethereumApiHelper = new EthereumApiHelper(this);
         solidityUtils = new SolidityUtils();
         try {
             cryptoUtils = new CryptoUtils(ENCRYPTION_PASSWORD);
@@ -125,10 +127,10 @@ public class Ethereum extends HttpService {
         this.confirmationBlocks = configuration.longInteger(CONFIRMATION_BLOCKS_PROPERTY, DEFAULT_CONFIRMATION_BLOCKS);
         this.isShared = configuration.bool(MULTITENANCY_PROPERTY, DEFAULT_MULTITENANCY_PROPERTY);
         if (isShared) {
-            logger.info("Endpoint started as a shared instance");
+            logger.info("Service started as a shared instance");
         }
         //this.httpService.setDefaultEmptyPath("");
-
+        this.httpService().setAllowExternalUrl(true);
         transactionManager = new TransactionManager(ethereumApiHelper, events(), appLogger, transactionsDs, configuration);
         transactionManager.start();
         eventsManager = new EventsManager(ethereumApiHelper, events(), appLogger, eventsDs, contractsDs, configuration.jsons("contracts"), confirmationBlocks, configuration);
@@ -185,7 +187,7 @@ public class Ethereum extends HttpService {
             aliasOrAddress = aliasOrAddress.toLowerCase();
         }
 
-        // find in endpoint's config
+        // find in service's config
         List<Json> contracts = configuration.jsons("contracts");
         Json contract = filterContract(isAddress, aliasOrAddress, contracts);
         if (contract != null) {
@@ -233,13 +235,13 @@ public class Ethereum extends HttpService {
             aliasOrAddress = aliasOrAddress.toLowerCase();
         }
 
-        // find in endpoint's config
+        // find in service's config
         List<Json> contracts = configuration.jsons("contracts");
         if (contracts != null) {
             for (Json co : contracts) {
                 if (!isAddress && aliasOrAddress.equals(co.string("alias")) ||
                         isAddress && aliasOrAddress.equals(co.string("address").toLowerCase())) {
-                    throw new IllegalArgumentException("This contract is configured in the endpoint and cannot be removed");
+                    throw new IllegalArgumentException("This contract is configured in the service and cannot be removed");
                 }
             }
         }
@@ -264,6 +266,11 @@ public class Ethereum extends HttpService {
     public Json encodedFunction(FunctionRequest request) {
         Json body = request.getJsonParams();
         return Json.map().set("body", "0x" + ethereumHelper.encodeFunction(body.json("fnAbi"), body.json("params")));
+    }
+
+    @ServiceFunction(name = "post")
+    public Json post(FunctionRequest request) {
+        return ethereumApiHelper.postAndGetResponse(Json.map().set("params",request.getJsonParams().set("url", this.getApiUri())));
     }
 
     @ServiceFunction(name = "decodeFunction")

@@ -190,6 +190,10 @@
             "name": "ropsten"
           },
           {
+            "label": "Sepolia",
+            "name": "sepolia"
+          },
+          {
             "label": "Kovan",
             "name": "kovan"
           },

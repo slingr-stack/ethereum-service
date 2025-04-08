@@ -26,7 +26,7 @@ public class CryptoUtils {
     private Cipher dcipher;
 
     public CryptoUtils(String password) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, InvalidKeySpecException {
-        byte[] encodedKey = Base64.getDecoder().decode(password);
+        byte[] encodedKey = org.apache.commons.codec.binary.Base64.decodeBase64(password);
         SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
         PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), encodedKey, 65536, 128);
         SecretKey tmp = factory.generateSecret(spec);

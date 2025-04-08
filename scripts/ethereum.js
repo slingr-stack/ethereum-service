@@ -62,7 +62,7 @@ exports.utils.getFunctionDefFromABI = function (fnName, aliasOrAddress) {
 };
 
 exports.utils.processSubmittedTransaction = function (msg, res) {
-    sys.storage.put("ethereum-endpoint-"+msg.options.from+'-nonce', msg.data.nonce, {ttl: 2 * 60 * 1000});
+    sys.storage.put("ethereum-service-"+msg.options.from+'-nonce', msg.data.nonce, {ttl: 2 * 60 * 1000});
     globalUnlock(msg.options.from);
     if (msg.options.submitted) {
         var func = 'var callback = ' + msg.options.submitted + ';'
@@ -118,7 +118,7 @@ exports.utils.processSubmittedTransaction = function (msg, res) {
 };
 
 exports.utils.processDeclinedTransaction = function (msg, res) {
-    sys.storage.remove("ethereum-endpoint-"+msg.options.from+"-nonce");
+    sys.storage.remove("ethereum-service>-"+msg.options.from+"-nonce");
     globalUnlock(msg.options.from);
     if (msg.options.error) {
         if (!res) {
@@ -169,12 +169,11 @@ exports.utils.internalSendTransaction = function (options) {
 
     switch (options.signMethod) {
         case 'metamask':
-            var pluginName = sys.internal.plugins.findFirstName('metamask');
-            if (!pluginName) {
-                throw 'Client Metamask plugin to sign transaction was not found';
+            if (!pkg.metamask) {
+                throw 'Metamask package was not found in the app. Must be installed and connected.';
             }
             sys.ui.sendMessage({
-                scope: 'plugin:' + pluginName,
+                scope: 'uiService:metamask.metamask',
                 name: 'sendTransaction',
                 data: rawTx,
                 netId: options.netId,
@@ -183,7 +182,7 @@ exports.utils.internalSendTransaction = function (options) {
                 callbacks: {
                     approved: function (msg, res) {
                         if (!res) {
-                            sys.logs.warn('Response is empty in approve callback from ' + pluginName);
+                            sys.logs.warn('Response is empty in approve callback from metamask');
                             return;
                         }
                         svc.ethereum.utils.processSubmittedTransaction(msg, res);
@@ -208,7 +207,7 @@ exports.utils.internalSendTransaction = function (options) {
             msg = JSON.parse(sys.utils.text.stringify(msg));
             if (!rawTx.gas) {
                 try {
-                    var estimatedGas = app.ethereumHelpers.estimateGas(rawTx);
+                    var estimatedGas = app.ethereumHelpers.eth.estimateGas(rawTx);
                     rawTx['gas'] = estimatedGas;
                 } catch (e) {
                     var error = {
@@ -227,7 +226,7 @@ exports.utils.internalSendTransaction = function (options) {
             }
             if (!rawTx.gasPrice) {
                 try {
-                    var gasPrice = app.ethereumHelpers.gasPrice();
+                    var gasPrice = app.ethereumHelpers.eth.gasPrice();
                     rawTx['gasPrice'] = gasPrice;
                 } catch (e) {
                     var error = {
@@ -263,7 +262,7 @@ exports.utils.internalSendTransaction = function (options) {
             }
             var res;
             try {
-                res = app.ethereumHelpers.sendRawTransaction(signedRawTx.data);
+                res = app.ethereumHelpers.eth.sendRawTransaction(signedRawTx.data);
             } catch (e) {
                 var error = {
                     errorMessage: 'Cannot send transaction to the Ethereum network',
@@ -371,7 +370,7 @@ exports.callFunction = function (aliasOrAddress, fnName, params, fromAddress) {
         data: data
     };
     try {
-        var data = app.ethereumHelpers.call(callObject, 'latest');
+        var data = app.ethereumHelpers.eth.call(callObject, 'latest');
         var decodedData;
         try {
             decodedData = svc.ethereum.decodeFunction({fnAbi: functionAbiDef, data: data});
@@ -411,7 +410,7 @@ exports.estimateTransaction = function (aliasOrAddress, fnName, params, fromAddr
         throw 'There was a problem encoding params: ' + sys.exceptions.getMessage(e) + '. Code: ' + sys.exceptions.getCode(e);
     }
     rawTx.data = data;
-    var estimatedGas = app.ethereumHelpers.estimateGas(rawTx);
+    var estimatedGas = app.ethereumHelpers.eth.estimateGas(rawTx);
     return estimatedGas;
 };
 
@@ -457,7 +456,7 @@ exports.sendTransaction = function (aliasOrAddress, fnName, params, fromAddress,
         }
         options.to = app.ethereum.utils.isAddress(aliasOrAddress) ? aliasOrAddress : app.ethereum.utils.getContractAddressByAlias(aliasOrAddress);
         options.data = data;
-        options.netId = app.ethereumHelpers.net.version();
+        options.netId = app.ethereumHelpers.eth.net.version();
         options.from = fromAddress;
         options.signMethod = signMethod;
         app.ethereum.utils.internalSendTransaction(options);
@@ -494,7 +493,7 @@ exports.sendEther = function (aliasOrAddress, amount, fromAddress, signMethod, o
         }
         options.to = app.ethereum.utils.isAddress(aliasOrAddress) ? aliasOrAddress : app.ethereum.utils.getContractAddressByAlias(aliasOrAddress);
         options.value = amount;
-        options.netId = app.ethereumHelpers.net.version();
+        options.netId = app.ethereumHelpers.eth.net.version();
         options.from = fromAddress;
         options.signMethod = signMethod;
         app.ethereum.utils.internalSendTransaction(options);
@@ -534,7 +533,7 @@ exports.createContract = function (alias, compiledCode, abi, fromAddress, signMe
         if (!options.nonce) {
             options.nonce = getNonce(fromAddress);
         }
-        options.netId = app.ethereumHelpers.net.version();
+        options.netId = app.ethereumHelpers.eth.net.version();
         options.from = fromAddress;
         options.signMethod = signMethod;
         options.originalConfirmedCallback = options.confirmed;
@@ -547,7 +546,7 @@ exports.createContract = function (alias, compiledCode, abi, fromAddress, signMe
         }
         options.data = compiledCode;
         options.confirmed = function (msg, res, receipt) {
-            app.endpoints[msg.endpointName]._registerContract({
+            svc.ethereum.registerContract({
                 alias: msg.options.contractInfo.alias ? msg.options.contractInfo.alias : receipt.contractAddress,
                 abi: JSON.parse(msg.options.contractInfo.abi),
                 address: receipt.contractAddress
@@ -705,13 +704,12 @@ exports.post = function (url, options) {
     return app.ethereum._post(options);
 };
 
-var _overridePost = app.ethereum._post;
 exports._post = function (options) {
     var body = (options && options.body) ? options.body : false;
-    if (!body || !app.ethereumHelpers.shouldAllow || app.ethereumHelpers.shouldAllow.indexOf(body.method) < 0) {
+    if (!body || !app.ethereumHelpers.eth.shouldAllow || app.ethereumHelpers.eth.shouldAllow.indexOf(body.method) < 0) {
         throw 'Forbidden ' + body.method;
     }
-    return _overridePost(options);
+    return svc.ethereum.post(options);
 };
 
 //////////////////////////////////////
@@ -762,11 +760,11 @@ function globalUnlock(key) {
 }
 
 function getNonce(address) {
-    var lastNonce = sys.storage.get("ethereum-endpoint-"+address+'-nonce');
+    var lastNonce = sys.storage.get("ethereum-service-"+address+'-nonce');
     if (lastNonce) {
         var newNonce = parseInt(lastNonce) + 1;
         return '0x'+newNonce.toString(16);
     } else {
-        return app.ethereumHelpers.transactionCount(address, 'pending');
+        return app.ethereumHelpers.eth.transactionCount(address, 'pending');
     }
 }

@@ -248,7 +248,7 @@ public class EventsManager {
                 event.set(APP_EVENTS_EVENT_NAME, parsedLog.string("eventName"));
                 event.set(APP_EVENTS_EVENT_DATA, parsedLog.json("eventData"));
                 // event should be sent to the proper apps
-                if (isSharedEndpoint()) {
+                if (isSharedService()) {
                     events.send(EVENT_CONTRACT_EVENT, logsDb.string("app"), logsDb.string("env"), event);
                 } else {
                     events.send(EVENT_CONTRACT_EVENT, event);
@@ -257,7 +257,7 @@ public class EventsManager {
         }
     }
 
-    private boolean isSharedEndpoint() {
+    private boolean isSharedService() {
         return config != null && config.bool("shared", false);
     }
 }

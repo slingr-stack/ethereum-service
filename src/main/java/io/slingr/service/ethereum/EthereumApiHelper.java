@@ -1,6 +1,6 @@
 package io.slingr.service.ethereum;
 
-import io.slingr.services.services.HttpService;
+import io.slingr.services.HttpService;
 import io.slingr.services.utils.Json;
 import io.slingr.services.ws.exchange.FunctionRequest;
 import org.slf4j.Logger;
@@ -23,7 +23,7 @@ public class EthereumApiHelper {
         Json body = this.getBody("eth_getBlockByHash", Json.list().push(blockHash).push(fullTransactions));
         logger.debug("Get Block by Hash: {} fullTransactions: {}", blockHash, fullTransactions);
         logger.debug("Body: {}", body.toString());
-        Json response = postAndGetResponse(body, "");
+        Json response = postAndGetResponse(body);
         return response != null ? response.json("result") : null;
     }
 
@@ -31,7 +31,7 @@ public class EthereumApiHelper {
         Json body = this.getBody("eth_getBlockByNumber", Json.list().push(number).push(fullTransactions));
         logger.debug("Get Block by Number: {} fullTransactions: {}", number, fullTransactions);
         logger.debug("Body: {}", body.toString());
-        Json response = postAndGetResponse(body, "");
+        Json response = postAndGetResponse(body);
         return response != null ? response.json("result") : null;
     }
 
@@ -39,7 +39,7 @@ public class EthereumApiHelper {
         Json body = this.getBody("eth_getTransactionReceipt", Json.list().push(txHash));
         logger.debug("Get transaction: {}", txHash);
         logger.debug("Body: {}", body.toString());
-        Json response = postAndGetResponse(body,"");
+        Json response = postAndGetResponse(body);
         return response != null ? response.json("result") : null;
     }
 
@@ -47,19 +47,21 @@ public class EthereumApiHelper {
         Json body = this.getBody("eth_getLogs", Json.list().push(Json.map().set("blockHash", hash)));
         logger.debug("Get logs by block: {}", hash);
         logger.debug("Body: {}", body.toString());
-        Json response = postAndGetResponse(body,"");
+        Json response = postAndGetResponse(body);
         return response != null && response.jsons("result") != null ? response.jsons("result") : new ArrayList<>();
     }
 
     private Json getBody(String method, Json params) {
-        return Json.map()
-                .set("id", new Date().getTime())
+        Json requestParams = Json.map().set("url", httpService.getApiUri()).set("body", Json.map()
                 .set("jsonrpc", "2.0")
                 .set("method", method)
-                .set("params", params);
+                .set("params", params)
+                .set("id", 1));
+        return Json.map().set("id", new Date().getTime()).set("params", requestParams);
+
     }
 
-    private Json postAndGetResponse(Json body, String functionId) {
+    protected Json postAndGetResponse(Json body) {
         try {
             return this.httpService.defaultPostRequest(new FunctionRequest(body));
         } catch (Exception e) {

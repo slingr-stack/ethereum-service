@@ -184,7 +184,7 @@ public class TransactionManager {
     }
 
     private void sendEvent(String event, Transaction transaction, Json res, String functionId) {
-        if (isSharedEndpoint()) {
+        if (isSharedService()) {
             events.send(event, res, functionId);
         } else {
             events.send(event, res, functionId);
@@ -235,7 +235,7 @@ public class TransactionManager {
         return transactions;
     }
 
-    private boolean isSharedEndpoint() {
+    private boolean isSharedService() {
         return config != null && config.bool("shared", false);
     }
 }
