@@ -1,11 +1,3 @@
----
-title: Ethereum service
-keywords: 
-last_updated: April 26, 2018
-tags: []
-summary: "Detailed description of how the Ethereum service works and its configuration."
----
-
 ## Overview
 
 The Ethereum service allows to interact with the Ethereum blockchain. This is the list of features:
