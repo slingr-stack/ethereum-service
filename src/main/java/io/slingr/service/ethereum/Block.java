@@ -1,6 +1,6 @@
-package io.slingr.endpoints.ethereum;
+package io.slingr.service.ethereum;
 
-import io.slingr.endpoints.utils.Json;
+import io.slingr.services.utils.Json;
 
 public class Block {
     public static final String PARENT_HASH = "parentHash";

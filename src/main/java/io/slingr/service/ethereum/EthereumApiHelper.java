@@ -1,7 +1,8 @@
-package io.slingr.endpoints.ethereum;
+package io.slingr.service.ethereum;
 
-import io.slingr.endpoints.services.HttpService;
-import io.slingr.endpoints.utils.Json;
+import io.slingr.services.HttpService;
+import io.slingr.services.utils.Json;
+import io.slingr.services.ws.exchange.FunctionRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,16 +52,18 @@ public class EthereumApiHelper {
     }
 
     private Json getBody(String method, Json params) {
-        return Json.map()
-                .set("id", new Date().getTime())
+        Json requestParams = Json.map().set("url", httpService.getApiUri()).set("body", Json.map()
                 .set("jsonrpc", "2.0")
                 .set("method", method)
-                .set("params", params);
+                .set("params", params)
+                .set("id", 1));
+        return Json.map().set("id", new Date().getTime()).set("params", requestParams);
+
     }
 
-    private Json postAndGetResponse(Json body) {
+    protected Json postAndGetResponse(Json body) {
         try {
-            return this.httpService.post(body);
+            return this.httpService.defaultPostRequest(new FunctionRequest(body));
         } catch (Exception e) {
             logger.error("Error posting json: {}", body.toString());
             logger.error(e.getMessage(), e);

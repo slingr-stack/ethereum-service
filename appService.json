@@ -87,35 +87,35 @@
   "functions": [
     {
       "label": "POST to REST RPC API",
-      "name": "_post"
+      "name": "post"
     },
     {
       "label": "Register and save contract",
-      "name": "_registerContract"
+      "name": "registerContract"
     },
     {
       "label": "Get contract by alias",
-      "name": "_getContract"
+      "name": "getContract"
     },
     {
       "label": "Remove contract by alias",
-      "name": "_removeContract"
+      "name": "removeContract"
     },
     {
       "label": "Encoded function",
-      "name": "_encodedFunction"
+      "name": "encodedFunction"
     },
     {
       "label": "Decode result",
-      "name": "_decodeFunction"
+      "name": "decodeFunction"
     },
     {
       "label": "Compile Solidity",
-      "name": "_compileSolidity"
+      "name": "compileSolidity"
     },
     {
       "label": "Confirm Transaction",
-      "name": "_confirmTransaction",
+      "name": "confirmTransaction",
       "callbacks": [
         {
           "name": "transactionConfirmed"
@@ -127,23 +127,23 @@
     },
     {
       "label": "Create account",
-      "name": "_createAccount"
+      "name": "createAccount"
     },
     {
       "label": "Import account",
-      "name": "_importAccount"
+      "name": "importAccount"
     },
     {
       "label": "Export account",
-      "name": "_exportAccount"
+      "name": "exportAccount"
     },
     {
       "label": "Sign transaction",
-      "name": "_signTransaction"
+      "name": "signTransaction"
     },
     {
       "label": "Decode logs in receipt",
-      "name": "_decodeLogsInReceipt"
+      "name": "decodeLogsInReceipt"
     }
   ],
   "scripts": [
@@ -188,6 +188,10 @@
           {
             "label": "Ropsten",
             "name": "ropsten"
+          },
+          {
+            "label": "Sepolia",
+            "name": "sepolia"
           },
           {
             "label": "Kovan",

@@ -1,14 +1,16 @@
-package io.slingr.endpoints.ethereum;
+package io.slingr.service.ethereum;
 
-import io.slingr.endpoints.HttpEndpoint;
-import io.slingr.endpoints.configurations.EndpointContext;
-import io.slingr.endpoints.exceptions.EndpointException;
-import io.slingr.endpoints.exceptions.ErrorCode;
-import io.slingr.endpoints.framework.annotations.*;
-import io.slingr.endpoints.services.AppLogs;
-import io.slingr.endpoints.services.datastores.DataStore;
-import io.slingr.endpoints.utils.Json;
-import io.slingr.endpoints.ws.exchange.FunctionRequest;
+import io.slingr.services.Service;
+import io.slingr.services.HttpService;
+import io.slingr.services.configurations.*;
+import io.slingr.services.exceptions.ServiceException;
+import io.slingr.services.exceptions.ErrorCode;
+import io.slingr.services.framework.annotations.*;
+import io.slingr.services.services.AppLogs;
+import io.slingr.services.services.datastores.DataStore;
+import io.slingr.services.services.datastores.DataStoreResponse;
+import io.slingr.services.utils.Json;
+import io.slingr.services.ws.exchange.FunctionRequest;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.ethereum.crypto.ECKey;
@@ -21,19 +23,20 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static org.ethereum.util.ByteUtil.longToBytesNoLeadZeroes;
 
 /**
- * <p>Ethereum endpoint
+ * <p>Ethereum service
  * <p>
  * <p>Created by hpacini on 12/03/18.
  */
-@SlingrEndpoint(name = "ethereum", functionPrefix = "_")
-public class EthereumEndpoint extends HttpEndpoint {
+@SlingrService(name = "ethereum")
+public class Ethereum extends HttpService {
 
-    private static final Logger logger = LoggerFactory.getLogger(EthereumEndpoint.class);
+    private static final Logger logger = LoggerFactory.getLogger(Ethereum.class);
 
     private final int ACCOUNTS_SEED_LENGTH = 128;
     private final String ENCRYPTION_PASSWORD = "jdU72Jus72bnfOnzA82su!8s_27hsN0jsy#";
@@ -43,22 +46,22 @@ public class EthereumEndpoint extends HttpEndpoint {
     @ApplicationLogger
     private AppLogs appLogger;
 
-    @EndpointConfiguration
+    @ServiceConfiguration
     private Json configuration;
 
-    @EndpointDataStore(name = "contracts")
+    @ServiceDataStore(name = "contracts")
     private DataStore contractsDs;
 
-    @EndpointDataStore(name = "blocks")
+    @ServiceDataStore(name = "blocks")
     private DataStore blocksDs;
 
-    @EndpointDataStore(name = "transactions")
+    @ServiceDataStore(name = "transactions")
     private DataStore transactionsDs;
 
-    @EndpointDataStore(name = "events")
+    @ServiceDataStore(name = "events")
     private DataStore eventsDs;
 
-    @EndpointDataStore(name = "accounts")
+    @ServiceDataStore(name = "accounts")
     public DataStore accountsDs;
 
     private String networkUrl;
@@ -82,7 +85,7 @@ public class EthereumEndpoint extends HttpEndpoint {
     private long confirmationBlocks;
     private boolean isShared;
 
-    @Override
+
     public String getApiUri() {
         switch (configuration.string("service")) {
             case "infura":
@@ -95,16 +98,16 @@ public class EthereumEndpoint extends HttpEndpoint {
 
             default:
                 appLogger.error("Invalid service configuration");
-                throw EndpointException.permanent(ErrorCode.ARGUMENT, "Invalid service configuration");
+                throw ServiceException.permanent(ErrorCode.ARGUMENT, "Invalid service configuration");
         }
         appLogger.info(String.format("Ethereum node URI: %s", networkUrl));
         return networkUrl;
     }
 
     @Override
-    public void endpointStarted() {
+    public void serviceStarted() {
         ethereumHelper = new EthereumHelper();
-        ethereumApiHelper = new EthereumApiHelper(httpService());
+        ethereumApiHelper = new EthereumApiHelper(this);
         solidityUtils = new SolidityUtils();
         try {
             cryptoUtils = new CryptoUtils(ENCRYPTION_PASSWORD);
@@ -124,10 +127,10 @@ public class EthereumEndpoint extends HttpEndpoint {
         this.confirmationBlocks = configuration.longInteger(CONFIRMATION_BLOCKS_PROPERTY, DEFAULT_CONFIRMATION_BLOCKS);
         this.isShared = configuration.bool(MULTITENANCY_PROPERTY, DEFAULT_MULTITENANCY_PROPERTY);
         if (isShared) {
-            logger.info("Endpoint started as a shared instance");
+            logger.info("Service started as a shared instance");
         }
-        this.httpService().setDefaultEmptyPath("");
-
+        //this.httpService.setDefaultEmptyPath("");
+        this.httpService().setAllowExternalUrl(true);
         transactionManager = new TransactionManager(ethereumApiHelper, events(), appLogger, transactionsDs, configuration);
         transactionManager.start();
         eventsManager = new EventsManager(ethereumApiHelper, events(), appLogger, eventsDs, contractsDs, configuration.jsons("contracts"), confirmationBlocks, configuration);
@@ -154,14 +157,7 @@ public class EthereumEndpoint extends HttpEndpoint {
         blocksManager.start();
     }
 
-    @Override
-    public void endpointStopped(String cause) {
-        blocksManager.shutdown();
-        eventsManager.shutdown();
-        transactionManager.shutdown();
-    }
-
-    @EndpointFunction(name = "_registerContract")
+    @ServiceFunction(name = "registerContract")
     public Json registerContract(FunctionRequest request) {
         Json body = request.getJsonParams();
         Json query = Json.map().set("address", body.string("address").toLowerCase());
@@ -178,7 +174,7 @@ public class EthereumEndpoint extends HttpEndpoint {
         return contract;
     }
 
-    @EndpointFunction(name = "_getContract")
+    @ServiceFunction(name = "getContract")
     public Json getContract(FunctionRequest request) {
         Json body = request.getJsonParams();
 
@@ -191,7 +187,7 @@ public class EthereumEndpoint extends HttpEndpoint {
             aliasOrAddress = aliasOrAddress.toLowerCase();
         }
 
-        // find in endpoint's config
+        // find in service's config
         List<Json> contracts = configuration.jsons("contracts");
         Json contract = filterContract(isAddress, aliasOrAddress, contracts);
         if (contract != null) {
@@ -230,7 +226,7 @@ public class EthereumEndpoint extends HttpEndpoint {
         return null;
     }
 
-    @EndpointFunction(name = "_removeContract")
+    @ServiceFunction(name = "removeContract")
     public Json removeContract(FunctionRequest request) {
         Json body = request.getJsonParams();
         String aliasOrAddress = body.string("alias");
@@ -239,13 +235,13 @@ public class EthereumEndpoint extends HttpEndpoint {
             aliasOrAddress = aliasOrAddress.toLowerCase();
         }
 
-        // find in endpoint's config
+        // find in service's config
         List<Json> contracts = configuration.jsons("contracts");
         if (contracts != null) {
             for (Json co : contracts) {
                 if (!isAddress && aliasOrAddress.equals(co.string("alias")) ||
                         isAddress && aliasOrAddress.equals(co.string("address").toLowerCase())) {
-                    throw new IllegalArgumentException("This contract is configured in the endpoint and cannot be removed");
+                    throw new IllegalArgumentException("This contract is configured in the service and cannot be removed");
                 }
             }
         }
@@ -266,19 +262,24 @@ public class EthereumEndpoint extends HttpEndpoint {
     }
 
 
-    @EndpointFunction(name = "_encodedFunction")
+    @ServiceFunction(name = "encodedFunction")
     public Json encodedFunction(FunctionRequest request) {
         Json body = request.getJsonParams();
         return Json.map().set("body", "0x" + ethereumHelper.encodeFunction(body.json("fnAbi"), body.json("params")));
     }
 
-    @EndpointFunction(name = "_decodeFunction")
+    @ServiceFunction(name = "post")
+    public Json post(FunctionRequest request) {
+        return ethereumApiHelper.postAndGetResponse(Json.map().set("params",request.getJsonParams().set("url", this.getApiUri())));
+    }
+
+    @ServiceFunction(name = "decodeFunction")
     public Json decodedResult(FunctionRequest request) {
         Json body = request.getJsonParams();
         return ethereumHelper.decodeResult(body.json("fnAbi"), body.string("data"));
     }
 
-    @EndpointFunction(name = "_compileSolidity")
+    @ServiceFunction(name = "compileSolidity")
     public Json compileSolidity(FunctionRequest request) {
         Json body = request.getJsonParams();
         String sourceCode = body.string("code");
@@ -286,7 +287,7 @@ public class EthereumEndpoint extends HttpEndpoint {
         return solidityUtils.compile(sourceCode, libraries);
     }
 
-    @EndpointFunction(name = "_confirmTransaction")
+    @ServiceFunction(name = "confirmTransaction")
     public Json confirmTransaction(FunctionRequest request) {
         Json body = request.getJsonParams();
         long confirmationTimeout, confirmationBlocks;
@@ -311,7 +312,7 @@ public class EthereumEndpoint extends HttpEndpoint {
         return resp;
     }
 
-    @EndpointFunction(name = "_createAccount")
+    @ServiceFunction(name = "createAccount")
     public Json createAccount(FunctionRequest request) {
         BigInteger privateKeyInteger;
         do {
@@ -331,7 +332,7 @@ public class EthereumEndpoint extends HttpEndpoint {
                 .set("address", address);
     }
 
-    @EndpointFunction(name = "_importAccount")
+    @ServiceFunction(name = "importAccount")
     public Json importAccount(FunctionRequest request) {
         Json body = request.getJsonParams();
         String privateKey = body.string("privateKey");
@@ -359,7 +360,7 @@ public class EthereumEndpoint extends HttpEndpoint {
                 .set("address", address);
     }
 
-    @EndpointFunction(name = "_exportAccount")
+    @ServiceFunction(name = "exportAccount")
     public Json exportAccount(FunctionRequest request) {
         Json body = request.getJsonParams();
         String address = body.string("address");
@@ -376,7 +377,7 @@ public class EthereumEndpoint extends HttpEndpoint {
         return account;
     }
 
-    @EndpointFunction(name = "_signTransaction")
+    @ServiceFunction(name = "signTransaction")
     public Json signTransaction(FunctionRequest request) {
         Json body = request.getJsonParams();
         String fromAddress = body.string("from");
@@ -405,7 +406,7 @@ public class EthereumEndpoint extends HttpEndpoint {
         return Json.map().set("data", "0x" + Hex.toHexString(tx.getEncoded()));
     }
 
-    @EndpointFunction(name = "_decodeLogsInReceipt")
+    @ServiceFunction(name = "decodeLogsInReceipt")
     public Json decodeLogsInReceipt(FunctionRequest request) {
         Json body = request.getJsonParams();
         List<Json> logs = body.jsons("logs");
