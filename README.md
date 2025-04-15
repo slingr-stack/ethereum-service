@@ -15,7 +15,7 @@ the Javascript API of the ethereum is based on it.
 
 ## Quick Start
 
-This service is a migration from the old service endpoint. To maintain compatibility with the previous JavaScript helpers (this way you will only have to change `app.endpoints.ethereum` calls to `app.ethereum`), you’ll need to create two app libraries.
+This service is a migration from the old service endpoint. To maintain compatibility with the previous JavaScript helpers (this way you will only have to change `app.endpoints.ethereum` calls to `app.ethereum`), you’ll need to create two app libraries and name them as "ethereum" and "ethereumHelpers".
 
 Inside the scripts folder, you’ll find two JavaScript files. Copy and paste the contents of each file into the newly created libraries in your app. You can name these libraries however you prefer, but make sure to update all references to them within the code accordingly.
 

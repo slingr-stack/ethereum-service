@@ -173,7 +173,7 @@ exports.utils.internalSendTransaction = function (options) {
                 throw 'Metamask package was not found in the app. Must be installed and connected.';
             }
             sys.ui.sendMessage({
-                scope: 'uiService:metamask.metamask',
+                scope: 'uiService:metamask.metaMask',
                 name: 'sendTransaction',
                 data: rawTx,
                 netId: options.netId,
