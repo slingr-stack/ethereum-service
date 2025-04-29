@@ -1,6 +1,6 @@
-package io.slingr.endpoints.ethereum;
+package io.slingr.service.ethereum;
 
-import io.slingr.endpoints.utils.Json;
+import io.slingr.services.utils.Json;
 import org.apache.commons.lang.StringUtils;
 import org.ethereum.core.CallTransaction.Function;
 import org.spongycastle.util.encoders.Hex;

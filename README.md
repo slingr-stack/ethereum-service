@@ -1,14 +1,6 @@
----
-title: Ethereum endpoint
-keywords: 
-last_updated: April 26, 2018
-tags: []
-summary: "Detailed description of how the Ethereum endpoint works and its configuration."
----
-
 ## Overview
 
-The Ethereum endpoint allows to interact with the Ethereum blockchain. This is the list of features:
+The Ethereum service allows to interact with the Ethereum blockchain. This is the list of features:
 
 - Helpers to simplify calls to functions in smart contracts
 - Handling of events fired by smart contracts
@@ -19,9 +11,15 @@ The Ethereum endpoint allows to interact with the Ethereum blockchain. This is t
 - Collection of helpers which contain specific functionality for the Ethereum ecosystem.
 
 It is important to look at [JSON RPC API](https://github.com/ethereum/wiki/wiki/JSON-RPC) as most of
-the Javascript API of the endpoint is based on it.
+the Javascript API of the ethereum is based on it.
 
 ## Quick Start
+
+This service is a migration from the old service endpoint. To maintain compatibility with the previous JavaScript helpers (this way you will only have to change `app.endpoints.ethereum` calls to `app.ethereum`), you’ll need to create two app libraries and name them as "ethereum" and "ethereumHelpers".
+
+Inside the scripts folder, you’ll find two JavaScript files. Copy and paste the contents of each file into the newly created libraries in your app. You can name these libraries however you prefer, but make sure to update all references to them within the code accordingly.
+
+By doing this, you’ll preserve all the original JavaScript functions. All examples provided in this documentation refer to these JavaScript helpers.
 
 Given following contract 
 
@@ -114,7 +112,7 @@ With [Remix](https://remix.ethereum.org/) extract the ABI definition
 ]
 ```
 
-In endpoint configuration set contract with following information:
+In service configuration set contract with following information:
 
 - the **address of deployed contract** for example `0x692a70d2e424a56d2c6c27aa97d1a86395877b3a`
 - the **aliasOrAddress** for example `Greeter` or the address of deployed contract.
@@ -125,7 +123,7 @@ In endpoint configuration set contract with following information:
 In order to run **setGreeting** in smart contract we fire next code. After that Metamask is opened to confirm the transaction unless the method was of view type, in this case it is executed directly.
 
 ```javascript
-app.endpoints.ethereum.sendTransaction(
+app.ethereum.sendTransaction(
   'Greeter', // contract alias  or the address of deployed contract
   'setGreeting', // function name
   ['Hello'], // params
@@ -173,9 +171,9 @@ And event is fired with following information
 
 ```json
 {
-  "type": "ENDPOINT",
-  "endpoint": "ethereum",
-  "endpointEvent": "contractEvent",
+  "type": "SERVICE",
+  "service": "ethereum",
+  "serviceEvent": "contractEvent",
   "date": 1524510669665,
   "data": {
     "result": {
@@ -218,7 +216,7 @@ This is the service that will be used to connect to Ethereum. These are the opti
 
 ### Infura network
 
-This is the Ethereum network to connect to. Allowed values are `mainnet`, `ropsten`, `kovan` and `rinkeby`.
+This is the Ethereum network to connect to. Allowed values are `mainnet`, `ropsten`,`sepolia`, `kovan` and `rinkeby`.
 
 ### Infura API key
 
@@ -266,7 +264,7 @@ Press button **start to compile** and after that you can open **details**. Here 
 
 ### JSON RPC API
 
-The endpoint provides access to the whole [JSON RPC API](https://github.com/ethereum/wiki/wiki/JSON-RPC)
+The service provides access to the whole [JSON RPC API](https://github.com/ethereum/wiki/wiki/JSON-RPC)
 so make sure you take a look at it.
 
 Basically methods are availables under the same name, only changing the underscore by a dot.
@@ -274,7 +272,7 @@ For example if you need to call the method `eth_getTransactionReceipt`, you can 
 this:
 
 ```js
-var receipt = app.endpoints.ethereum.eth.transactionReceipt(txHash);
+var receipt = app.ethereum.eth.transactionReceipt(txHash);
 ```
 
 Basically parameters are sent directly to the API as indicated in the docs.
@@ -314,7 +312,7 @@ These are the methods available:
 ### Send transaction
 
 ```js
-var res = app.endpoints.ethereum.sendTransaction(aliasOrAddress, fnName, params, fromAddress, signMethod, options);
+var res = app.ethereum.sendTransaction(aliasOrAddress, fnName, params, fromAddress, signMethod, options);
 ```
 
 Where:
@@ -374,7 +372,7 @@ to listen for the events to know when the transaction has been confirmed or if t
 Sample:
 
 ```js
-app.endpoints.ethereum.sendTransaction(
+app.ethereum.sendTransaction(
   'greeter', 
   'setGreeting', 
   [action.field('greeting').val()], 
@@ -408,7 +406,7 @@ app.endpoints.ethereum.sendTransaction(
 ### Send ether
 
 ```js
-var res = app.endpoints.ethereum.sendEther(aliasOrAddress, amount, fromAddress, signMethod, options);
+var res = app.ethereum.sendEther(aliasOrAddress, amount, fromAddress, signMethod, options);
 ```
 
 Very similar to how you can send a transaction to call a function in a contract, but in this case we need to send
@@ -417,7 +415,7 @@ the amount (in hexadecimal) instead of the name of the function and the params. 
 Same:
 
 ```js
-app.endpoints.ethereum.sendEther(
+app.ethereum.sendEther(
   '0xb60e8dd61c5d32be8058bb8eb970870f07233155', 
   '0x9184e72a', 
   '0x590782dc744cb95662192bde0da32acf5e99d851',
@@ -450,7 +448,7 @@ app.endpoints.ethereum.sendEther(
 ### Call function
 
 ```js
-var res = app.endpoints.ethereum.callFunction(aliasOrAddress, fnName, params, fromAddress);
+var res = app.ethereum.callFunction(aliasOrAddress, fnName, params, fromAddress);
 ```
 
 Where:
@@ -468,7 +466,7 @@ It returns an array with the response of the function.
 Sample:
 
 ```js
-var res = app.endpoints.ethereum.callFunction('greeter', 'getGreeting', []);
+var res = app.ethereum.callFunction('greeter', 'getGreeting', []);
 log('greeting: '+JSON.stringify(res));
 ```
 
@@ -476,7 +474,7 @@ log('greeting: '+JSON.stringify(res));
 ### Compile Solidity code
 
 ```js
-var res = app.endpoints.ethereum.compileSolidity(code, contractName);
+var res = app.ethereum.compileSolidity(code, contractName);
 ```
 
 Where:
@@ -507,13 +505,13 @@ The response looks like this:
 Sample:
 
 ```js
-var contract = app.endpoints.ethereum.compileSolidity(action.field('code').val(), 'Greeter');
+var contract = app.ethereum.compileSolidity(action.field('code').val(), 'Greeter');
 ```
 
 ### Create contract
 
 ```js
-app.endpoints.ethereum.createContract(alias, compiledCode, abi, fromAddress, signMethod, options);
+app.ethereum.createContract(alias, compiledCode, abi, fromAddress, signMethod, options);
 ```
 
 Where:
@@ -532,14 +530,14 @@ This method will deploy the contract into the Ethereum network and register it i
 the address assigned by the network. You will be able to get the details of the deployed contract
 by using the method `getContract()` (see below).
 
-When a contract is registered, the endpoint will automatically start to listening to events from
+When a contract is registered, the service will automatically start to listening to events from
 that contract.
 
 Sample:
 
 ```js
-var contract = app.endpoints.ethereum.compileSolidity(action.field('code').val(), 'Greeter');
-app.endpoints.ethereum.createContract(
+var contract = app.ethereum.compileSolidity(action.field('code').val(), 'Greeter');
+app.ethereum.createContract(
   action.field('alias').val(), 
   contract.bin, 
   contract.abi, 
@@ -573,10 +571,10 @@ app.endpoints.ethereum.createContract(
 ### Register contract
 
 ``` js
-endpoint.registerContract(alias, contractAddress, abi);
+app.ethereum.registerContract(alias, contractAddress, abi);
 ```
 
-Registers an existing contract in the endpoint. If there is already a contract registered on the
+Registers an existing contract in the service. If there is already a contract registered on the
 same address, an error will be thrown.
 
 The `alias` parameter is optional.
@@ -584,7 +582,7 @@ The `alias` parameter is optional.
 ### Get contract
 
 ``` js
-var contract = endpoint.getContract(aliasOrAddress);
+var contract = app.ethereum.getContract(aliasOrAddress);
 ```
 
 Returns the contract information by alias or contract address. The format of the contract is like this:
@@ -600,7 +598,7 @@ Returns the contract information by alias or contract address. The format of the
 ### Remove contract
 
 ``` js
-var contract = endpoint.removeContract(aliasOrAddress);
+var contract = app.ethereum.removeContract(aliasOrAddress);
 ```
 
 Remove a contract from the app by alias or contract address. Keep in mind that this does not delete the contract in
@@ -611,29 +609,29 @@ for this contract.
 ### Create account
 
 ``` js
-var address = endpoint.createAccount();
+var address = app.ethereum.createAccount();
 ```
 
 Creates a new private key and returns the address associated to that private key.
 
-This accounts are managed by the endpoint so users don't need to rely on external software
+This accounts are managed by the service so users don't need to rely on external software
 like Metamask.
 
 ### Import account
 
 ``` js
-var address = endpoint.importAccount(privateKey);
+var address = app.ethereum.importAccount(privateKey);
 ```
 
 Imports a private key and returns the address associated to it.
 
-This accounts are managed by the endpoint so users don't need to rely on external software
+This accounts are managed by the service so users don't need to rely on external software
 like Metamask.
 
 ### Export account
 
 ``` js
-var account = endpoint.exportAccount(address);
+var account = app.ethereum.exportAccount(address);
 ```
 
 {% include warning.html content="Once you export the private key it won't be secure. Only use this for dev purposes." %}
@@ -650,7 +648,7 @@ Returns the information of an account, with is the address and private key:
 ### Checksum address
 
 ``` js
-var addressChecksum = endpoint.toChecksumAddress(address);
+var addressChecksum = app.ethereum.toChecksumAddress(address);
 ```
 
 Calculates checksum address according to [Ethereum specifications](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-55.md).
@@ -659,17 +657,17 @@ Calculates checksum address according to [Ethereum specifications](https://githu
 
 ### Contract event
 
-The event `contractEvent` is sent when a contract registered in the app (either in the endpoint's
+The event `contractEvent` is sent when a contract registered in the app (either in the service's
 configuration or by using `createContract()` or `registerContract()`) triggers an event.
 
 The event will have the following structure:
 
 ```json
 {
-  "type": "ENDPOINT",
-  "endpointEvent": "contractEvent",
+  "type": "SERVICE",
+  "serviceEvent": "contractEvent",
   "date": 1524678136750,
-  "endpoint": "ethereum",
+  "service": "ethereum",
   "data": {
     "rawEvent": {
       "address": "0x0a7a177321f3b3b6e2299e621eb32e892b141b4b",
@@ -704,10 +702,10 @@ hash and number:
 
 ```json
 {
-  "type": "ENDPOINT",
-  "endpointEvent": "newBlock",
+  "type": "SERVICE",
+  "serviceEvent": "newBlock",
   "date": 1524678136750,
-  "endpoint": "ethereum",
+  "service": "ethereum",
   "data": {
       "number": "0x1b4",
       "hash": "0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331",
@@ -737,10 +735,10 @@ information as when a there is a new block:
 
 ```json
 {
-  "type": "ENDPOINT",
-  "endpointEvent": "blockRemoved",
+  "type": "SERVICE",
+  "serviceEvent": "blockRemoved",
   "date": 1524678136750,
-  "endpoint": "ethereum",
+  "service": "ethereum",
   "data": {
       "number": "0x1b4",
       "hash": "0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331",
@@ -765,20 +763,20 @@ information as when a there is a new block:
 
 ### Transaction removed
 
-This event is sent when a transaction that was processed through the endpoint (by using `sendTransaction()`)
+This event is sent when a transaction that was processed through the service (by using `sendTransaction()`)
 is removed due to a chain reorganization.
 
-Keep in mind that you won't get this event for transactions executed outside the endpoint (another Dapp calling 
+Keep in mind that you won't get this event for transactions executed outside the service (another Dapp calling 
 the contract's function).
 
 The data of the event is the receipt of the transaction that was removed:
 
 ```json
 {
-  "type": "ENDPOINT",
-  "endpointEvent": "blockRemoved",
+  "type": "SERVICE",
+  "serviceEvent": "blockRemoved",
   "date": 1524678136750,
-  "endpoint": "ethereum",
+  "service": "ethereum",
   "data": {
      "transactionHash": "0xb903239f8543d04b5dc1ba6579132b143087c68db1b2168786408fcbce568238",
      "transactionIndex":  "0x1",
@@ -802,4 +800,4 @@ SLINGR is a low-code rapid application development platform that accelerates dev
 
 ## License
 
-This endpoint is licensed under the Apache License 2.0. See the `LICENSE` file for more details.
+This service is licensed under the Apache License 2.0. See the `LICENSE` file for more details.

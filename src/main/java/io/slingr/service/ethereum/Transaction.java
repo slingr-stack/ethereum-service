@@ -1,8 +1,6 @@
-package io.slingr.endpoints.ethereum;
+package io.slingr.service.ethereum;
 
-
-import io.slingr.endpoints.configurations.EndpointContext;
-import io.slingr.endpoints.utils.Json;
+import io.slingr.services.utils.Json;
 
 public class Transaction {
 
@@ -52,8 +50,6 @@ public class Transaction {
         this.timeout = timeout;
         this.confirmationBlocks = confirmationBlocks;
         this.receipt = null;
-        this.app = EndpointContext.getCurrentApp();
-        this.env = EndpointContext.getCurrentEnv();
     }
 
     public Transaction(Json json) {
@@ -156,22 +152,6 @@ public class Transaction {
         this.from = from;
     }
 
-    public String getApp() {
-        return app;
-    }
-
-    public void setApp(String app) {
-        this.app = app;
-    }
-
-    public String getEnv() {
-        return env;
-    }
-
-    public void setEnv(String env) {
-        this.env = env;
-    }
-
     public Json toJson() {
         return Json.map()
                 .set(ID, this.getId())
@@ -185,9 +165,7 @@ public class Transaction {
                 .set(CONFIRMATION_BLOCKS, this.getConfirmationBlocks())
                 .set(TIMESTAMP, this.getTimestamp())
                 .set(TIMEOUT, this.getTimeout())
-                .set(RECEIPT, this.getReceipt())
-                .setIfNotEmpty(APP, this.getApp())
-                .setIfNotEmpty(ENV, this.getEnv());
+                .set(RECEIPT, this.getReceipt());
     }
 
     public void fromJson(Json tx) {
@@ -203,7 +181,5 @@ public class Transaction {
         this.setTimestamp(tx.longInteger(TIMESTAMP));
         this.setTimeout(tx.longInteger(TIMEOUT));
         this.setReceipt(tx.json(RECEIPT));
-        this.setApp(tx.string(APP));
-        this.setEnv(tx.string(ENV));
     }
 }

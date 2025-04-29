@@ -1,6 +1,6 @@
-package io.slingr.endpoints.ethereum;
+package io.slingr.service.ethereum;
 
-import io.slingr.endpoints.utils.Json;
+import io.slingr.services.utils.Json;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

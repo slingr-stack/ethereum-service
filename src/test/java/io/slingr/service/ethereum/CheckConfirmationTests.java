@@ -1,4 +1,4 @@
-package io.slingr.endpoints.ethereum;
+package io.slingr.service.ethereum;
 
 
 public class CheckConfirmationTests {

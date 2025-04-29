@@ -1,8 +1,8 @@
-package io.slingr.endpoints.ethereum;
+package io.slingr.service.ethereum;
 
-import io.slingr.endpoints.exceptions.EndpointException;
-import io.slingr.endpoints.exceptions.ErrorCode;
-import io.slingr.endpoints.utils.Json;
+import io.slingr.services.exceptions.ServiceException;
+import io.slingr.services.exceptions.ErrorCode;
+import io.slingr.services.utils.Json;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
@@ -20,7 +20,7 @@ public class SolidityUtils {
         OutputStream resStreamOut = null;
         String destFolder = "/usr/bin/";
         try {
-            stream = EthereumEndpoint.class.getClassLoader().getResourceAsStream(resourceName);//note that each / is a directory down in the "jar tree" been the jar the root of the tree
+            stream = Ethereum.class.getClassLoader().getResourceAsStream(resourceName);//note that each / is a directory down in the "jar tree" been the jar the root of the tree
             if (stream == null) {
                 throw new Exception("Cannot get resource \"" + resourceName + "\" from Jar file.");
             }
@@ -53,7 +53,7 @@ public class SolidityUtils {
             FileUtils.writeStringToFile(temp, sourceCode, "UTF-8");
         } catch (IOException e) {
             logger.error("Error writing source code to file", e);
-            throw EndpointException.permanent(ErrorCode.GENERAL, "Error writing source code to file", e);
+            throw ServiceException.permanent(ErrorCode.GENERAL, "Error writing source code to file", e);
         }
 
         List<String> commandParams = new ArrayList<>();
@@ -93,7 +93,7 @@ public class SolidityUtils {
                     errorMessage += s + "   ";
                 }
                 logger.error("Error compiling code: "+errorMessage);
-                throw EndpointException.permanent(ErrorCode.GENERAL, "Error compiling code: "+errorMessage);
+                throw ServiceException.permanent(ErrorCode.GENERAL, "Error compiling code: "+errorMessage);
             }
             StringWriter writer = new StringWriter();
             IOUtils.copy(FileUtils.openInputStream(new File("/tmp/combined.json")), writer, "UTF-8");
@@ -101,7 +101,7 @@ public class SolidityUtils {
             return Json.parse(jsonString);
         } catch (Exception e) {
             logger.error("Unknown error compiling code", e);
-            throw EndpointException.permanent(ErrorCode.GENERAL, "Unknown error compiling code", e);
+            throw ServiceException.permanent(ErrorCode.GENERAL, "Unknown error compiling code", e);
         } finally {
             if (process != null) {
                 process.destroy();
