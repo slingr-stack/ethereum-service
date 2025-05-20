@@ -6,7 +6,7 @@
     <parent>
         <groupId>io.github.slingr-stack</groupId>
         <artifactId>slingr-services-builder</artifactId>
-        <version>1.0.0</version>
+        <version>1.0.0-SNAPSHOT</version>
     </parent>
     <artifactId>ethereum</artifactId>
     <version>1.0-SNAPSHOT</version>
