@@ -11,12 +11,12 @@
     <artifactId>ethereum</artifactId>
     <version>1.0-SNAPSHOT</version>
 
-    <name>SLINGR - Ethereum Endpoint</name>
+    <name>SLINGR - Ethereum Service</name>
     <packaging>jar</packaging>
 
     <properties>
         <!-- SLINGR versions -->
-        <slingr.slingr-service.version>1.6.6</slingr.slingr-service.version>
+        <slingr.slingr-service.version>1.6.5</slingr.slingr-service.version>
 
         <!-- Dependency versions -->
         <log4j.version>2.8.2</log4j.version>
@@ -34,9 +34,7 @@
         <junit.version>4.12</junit.version>
         <mockito.version>1.10.19</mockito.version>
 
-        <!-- Build properties -->
-        <jdk.version>1.8</jdk.version>
-        <build.main-class>io.slingr.services.ethereum.Runner</build.main-class>
+        <build.main-class>io.slingr.service.ethereum.Runner</build.main-class>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
