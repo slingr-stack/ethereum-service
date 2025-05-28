@@ -81,7 +81,7 @@ public class BlocksManager {
                     processNewBlock(newBlock);
                 }
             } catch (Exception e) {
-                appLogger.error(String.format("Error polling for new blocks: [%s] consider to decrease the pollingWaitTime: [%d]", e.getMessage(), pollingWaitTime));
+                appLogger.error(String.format("Error polling for new blocks: consider to decrease the pollingWaitTime: [%d]", pollingWaitTime, e.getMessage()));
                 logger.error(String.format("Error polling for new blocks: [%s]", e.getMessage()), e);
             } finally {
                 lock.unlock();

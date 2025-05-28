@@ -1,6 +1,8 @@
 package io.slingr.service.ethereum;
 
 import io.slingr.services.HttpService;
+import io.slingr.services.exceptions.ErrorCode;
+import io.slingr.services.exceptions.ServiceException;
 import io.slingr.services.utils.Json;
 import io.slingr.services.ws.exchange.FunctionRequest;
 import org.slf4j.Logger;
@@ -67,7 +69,7 @@ public class EthereumApiHelper {
         } catch (Exception e) {
             logger.error("Error posting json: {}", body.toString());
             logger.error(e.getMessage(), e);
-            throw new RuntimeException(e);
+            throw ServiceException.permanent(ErrorCode.GENERAL, "Failed to make post request", e);
         }
     }
 }
