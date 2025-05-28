@@ -67,7 +67,7 @@ public class EthereumApiHelper {
         } catch (Exception e) {
             logger.error("Error posting json: {}", body.toString());
             logger.error(e.getMessage(), e);
+            throw new RuntimeException(e);
         }
-        return null;
     }
 }
