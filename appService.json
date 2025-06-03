@@ -240,7 +240,7 @@
       "label": "Contracts",
       "name": "contracts",
       "type": "fieldsGroup",
-      "multiplicity": "many",
+      "multiplicity": "one",
       "typeOptions": {
         "fields":[
           {
